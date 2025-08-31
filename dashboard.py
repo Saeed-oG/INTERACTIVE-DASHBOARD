@@ -8,7 +8,7 @@ import matplotlib.ticker as ticker
 
 @st.cache_data # Cache data to reduce loading time
 def load_data():
-    indata = pd.read_csv('supermarket_sales.csv')
+    indata = pd.read_csv('supermarket_sales - Sheet1.csv')
     indata['Date'] = pd.to_datetime(indata['Date']) # Convert 'Date' column to datetime
     indata['Month'] = indata['Date'].dt.to_period('M').astype(str) # Creat month column with YYYY-MM format
     return indata
@@ -97,3 +97,4 @@ plt.ylabel('Total Sales')
 plt.xticks(rotation=45)
 plt.grid(True)
 st.pyplot(fig)
+
