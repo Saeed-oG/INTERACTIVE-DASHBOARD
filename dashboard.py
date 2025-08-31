@@ -6,16 +6,19 @@ import matplotlib.pyplot as plt
 from io import StringIO
 import matplotlib.ticker as ticker
 
+@st.cache_data # Cache data to reduce loading time
+def load_data():
+    indata = pd.read_csv('supermarket_sales.csv')
+    indata['Date'] = pd.to_datetime(indata['Date']) # Convert 'Date' column to datetime
+    indata['Month'] = indata['Date'].dt.to_period('M').astype(str) # Creat month column with YYYY-MM format
+    return indata
+
 # Set page layout to wide
 st.set_page_config(layout="wide")
 
 # Load dataset
-indata = pd.read_csv(r'D:\MYDESK\New folder (3)\Programming\DASHBOARD\supermarket_sales - Sheet1.csv')
+indata = load_data()
 print(indata.head())
-
-# Convert 'Date' column to datetime
-indata['Date'] = pd.to_datetime(indata['Date'])
-indata['Month'] = indata['Date'].dt.to_period('M').astype(str)
 
 # Dashboard title and description
 st.title("Supermarket Sales Dashboard")
