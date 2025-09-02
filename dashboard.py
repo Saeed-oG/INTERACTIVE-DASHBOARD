@@ -97,4 +97,3 @@ plt.ylabel('Total Sales')
 plt.xticks(rotation=45)
 plt.grid(True)
 st.pyplot(fig)
-
