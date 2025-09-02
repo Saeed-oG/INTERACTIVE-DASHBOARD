@@ -1,84 +1,159 @@
-# Import required libraries
 import streamlit as st
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from io import StringIO
-import matplotlib.ticker as ticker
 
-@st.cache_data # Cache data to reduce loading time
+# ----------------------
+# Page Config (must be first after imports)
+# ----------------------
+st.set_page_config(page_title="Supermarket Dashboard", layout="wide")
+
+# ----------------------
+# Authentication System
+# ----------------------
+
+# Initialize login state if not exists
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+    st.session_state.username = ""
+
+# Hardcoded users (username: password)
+users = {
+    "admin": "1234",
+    "ali": "pass123",
+    "maryam": "mypassword"
+}
+
+# If not logged in → Show login form
+if not st.session_state.logged_in:
+    st.sidebar.subheader("Login")
+    username = st.sidebar.text_input("Username")
+    password = st.sidebar.text_input("Password", type="password")
+    login_button = st.sidebar.button("Login")
+
+    if login_button:
+        if username in users and users[username] == password:
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.success(f"Welcome {username}!")
+            st.rerun()  # refresh after login
+        else:
+            st.error("Invalid username or password")
+    st.stop()
+
+# If logged in → Show logout button
+st.sidebar.write(f"Logged in as: {st.session_state.username}")
+if st.sidebar.button("Logout"):
+    st.session_state.logged_in = False
+    st.session_state.username = ""
+    st.rerun()
+
+
+# ----------------------
+# Theme Toggle
+# ----------------------
+if "theme" not in st.session_state:
+    st.session_state.theme = "light"
+
+if st.sidebar.button("Toggle Theme"):
+    st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
+    st.rerun()
+
+# Apply custom CSS based on theme
+if st.session_state.theme == "dark":
+    st.markdown(
+        """
+        <style>
+        body {background-color: #0E1117; color: #FAFAFA;}
+        .stApp {background-color: #0E1117; color: #FAFAFA;}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+else:
+    st.markdown(
+        """
+        <style>
+        body {background-color: #FFFFFF; color: #000000;}
+        .stApp {background-color: #FFFFFF; color: #000000;}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# ----------------------
+# Load Data
+# ----------------------
+@st.cache_data
 def load_data():
-    indata = pd.read_csv('supermarket_sales - Sheet1.csv')
-    indata['Date'] = pd.to_datetime(indata['Date']) # Convert 'Date' column to datetime
-    indata['Month'] = indata['Date'].dt.to_period('M').astype(str) # Creat month column with YYYY-MM format
-    return indata
+    df = pd.read_csv('supermarket_sales - Sheet1.csv')
+    df['Date'] = pd.to_datetime(df['Date'])
+    df['Month'] = df['Date'].dt.to_period('M').astype(str)
+    return df
 
-# Set page layout to wide
-st.set_page_config(layout="wide")
+df = load_data()
 
-# Load dataset
-indata = load_data()
-print(indata.head())
-
-# Dashboard title and description
+# ----------------------
+# Dashboard Content
+# ----------------------
 st.title("Supermarket Sales Dashboard")
 st.write("Interactive dashboard to analyze supermarket sales data.")
 
-# Create two-column layout for filters and metrics
+# Two-column layout for filters and metrics
 col1, col2 = st.columns(2)
 
 with col1:
     # Interactive filters
     st.subheader("Filter Data")
-    cities = st.multiselect("Select City:", options=indata['City'].unique(), default=indata['City'].unique())
-    product_lines = st.multiselect("Select Product Line:", options=indata['Product line'].unique(), default=indata['Product line'].unique())
-    customer_types = st.multiselect("Select Customer Type:", options=indata['Customer type'].unique(), default=indata['Customer type'].unique())
+    cities = st.multiselect("Select City", options=df['City'].unique(), default=df['City'].unique())
+    product_lines = st.multiselect("Select Product Line", options=df['Product line'].unique(), default=df['Product line'].unique())
+    customer_types = st.multiselect("Select Customer Type", options=df['Customer type'].unique(), default=df['Customer type'].unique())
 
 # Filter data based on selections
-filtered_indata = indata[indata['City'].isin(cities) & indata['Product line'].isin(product_lines) & indata['Customer type'].isin(customer_types)]
+filtered_df = df[df['City'].isin(cities) & df['Product line'].isin(product_lines) & df['Customer type'].isin(customer_types)]
 
 with col2:
     # Display key metrics
     st.subheader("Key Metrics")
-    total_sales = filtered_indata['Total'].sum()
-    avg_sales = filtered_indata['Total'].mean()
+    total_sales = filtered_df['Total'].sum()
+    avg_sales = filtered_df['Total'].mean()
     st.metric("Total Sales", f"${total_sales:,.2f}")
     st.metric("Average Sale", f"${avg_sales:,.2f}")
 
 # Display filtered data table
 st.subheader("Filtered Sales Data")
-st.dataframe(filtered_indata.head(10))
+st.dataframe(filtered_df.head(10))
 
-# Download filtered data as CSV
+# Download filtered data
 st.subheader("Download Filtered Data")
-csv = filtered_indata.to_csv(index=False, encoding='utf-8-sig')
+csv = filtered_df.to_csv(index=False, encoding='utf-8-sig')
 st.download_button(
-    label="📥Download CSV",
+    label="Download CSV",
     data=csv,
-   file_name=f"sales_data_{pd.Timestamp.now().strftime('%Y-%m-%d')}.csv",
+    file_name="filtered_sales.csv",
     mime="text/csv"
 )
 
+# ----------------------
 # Visualizations
+# ----------------------
 st.subheader("Visualizations")
 col3, col4 = st.columns(2)
 
 with col3:
     # Bar chart for sales by city
-    city_sales = (filtered_indata.groupby('City')['Total'].sum()
-              .reset_index()
-              .sort_values('Total', ascending=True))
-    fig, ax = plt.subplots(figsize=(8, 6))
-    sns.barplot(data=city_sales, x='Total', y='City', palette='viridis', ax=ax)
-    ax.xaxis.set_major_formatter(ticker.StrMethodFormatter('{x:,.0f}'))
-    plt.title('Total Sales by City', fontsize=14, fontweight='bold')
-    plt.xlabel('Total Sales', fontsize=12)
-    plt.ylabel('City', fontsize=12)
+    city_sales = filtered_df.groupby('City')['Total'].sum().reset_index()
+    fig, ax = plt.subplots(figsize=(6, 4))
+    sns.barplot(data=city_sales, x='Total', y='City', hue='City', palette='Blues', ax=ax)
+    plt.title('Total Sales by City')
+    plt.xlabel('Total Sales')
+    plt.ylabel('City')
     st.pyplot(fig)
 
 with col4:
     # Bar chart for sales by product line
-    product_sales = filtered_indata.groupby('Product line')['Total'].sum().reset_index()
+    product_sales = filtered_df.groupby('Product line')['Total'].sum().reset_index()
     fig, ax = plt.subplots(figsize=(6, 4))
     sns.barplot(data=product_sales, x='Total', y='Product line', hue='Product line', palette='Greens', ax=ax)
     plt.title('Total Sales by Product Line')
@@ -88,8 +163,8 @@ with col4:
 
 # Line chart for monthly sales trend
 st.subheader("Monthly Sales Trend")
-monthly_sales = filtered_indata.groupby('Month')['Total'].sum().reset_index()
-fig, ax = plt.subplots(figsize=(10, 5))
+monthly_sales = filtered_df.groupby('Month')['Total'].sum().reset_index()
+fig, ax = plt.subplots(figsize=(8, 4))
 sns.lineplot(data=monthly_sales, x='Month', y='Total', marker='o', ax=ax)
 plt.title('Monthly Sales Trend')
 plt.xlabel('Month')
