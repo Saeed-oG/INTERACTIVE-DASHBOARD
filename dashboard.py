@@ -91,7 +91,7 @@ else:
 # ----------------------
 @st.cache_data
 def load_data():
-    indata = pd.read_csv(r'D:\MYDESK\New folder (3)\Programming\DASHBOARD\supermarket_sales - Sheet1.csv')
+    indata = pd.read_csv('supermarket_sales - Sheet1.csv')
     indata['Date'] = pd.to_datetime(indata['Date'])
     indata['Month'] = indata['Date'].dt.to_period('M').astype(str)
     return indata
@@ -176,3 +176,4 @@ plt.ylabel('Total Sales')
 plt.xticks(rotation=45)
 plt.grid(True)
 st.pyplot(fig)
+
