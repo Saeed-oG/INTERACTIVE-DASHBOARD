@@ -26,7 +26,7 @@ users = {
 
 # If not logged in → Show login form
 if not st.session_state.logged_in:
-    st.sidebar.subheader("Login")
+    st.sidebar.subheader("Hello Everyone<3")
     username = st.sidebar.text_input("Username")
     password = st.sidebar.text_input("Password", type="password")
     login_button = st.sidebar.button("Login")
@@ -172,3 +172,4 @@ plt.ylabel('Total Sales')
 plt.xticks(rotation=45)
 plt.grid(True)
 st.pyplot(fig)
+
