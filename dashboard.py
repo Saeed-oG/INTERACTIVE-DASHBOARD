@@ -35,7 +35,7 @@ if not st.session_state.logged_in:
         if username in users and users[username] == password:
             st.session_state.logged_in = True
             st.session_state.username = username
-            st.success(f"Welcome {username}!")
+            st.session_state.show_welcome = True
             st.rerun()  # refresh after login
         else:
             st.error("Invalid username or password")
@@ -48,6 +48,10 @@ if st.sidebar.button("Logout"):
     st.session_state.username = ""
     st.rerun()
 
+# Show welcome message only once after login
+if st.session_state.show_welcome:
+    st.success(f"Welcome {st.session_state.username}!")
+    st.session_state.show_welcome = False
 
 # ----------------------
 # Theme Toggle
@@ -87,12 +91,12 @@ else:
 # ----------------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv('supermarket_sales - Sheet1.csv')
-    df['Date'] = pd.to_datetime(df['Date'])
-    df['Month'] = df['Date'].dt.to_period('M').astype(str)
-    return df
+    indata = pd.read_csv(r'D:\MYDESK\New folder (3)\Programming\DASHBOARD\supermarket_sales - Sheet1.csv')
+    indata['Date'] = pd.to_datetime(indata['Date'])
+    indata['Month'] = indata['Date'].dt.to_period('M').astype(str)
+    return indata
 
-df = load_data()
+indata = load_data()
 
 # ----------------------
 # Dashboard Content
@@ -106,28 +110,28 @@ col1, col2 = st.columns(2)
 with col1:
     # Interactive filters
     st.subheader("Filter Data")
-    cities = st.multiselect("Select City", options=df['City'].unique(), default=df['City'].unique())
-    product_lines = st.multiselect("Select Product Line", options=df['Product line'].unique(), default=df['Product line'].unique())
-    customer_types = st.multiselect("Select Customer Type", options=df['Customer type'].unique(), default=df['Customer type'].unique())
+    cities = st.multiselect("Select City", options=indata['City'].unique(), default=indata['City'].unique())
+    product_lines = st.multiselect("Select Product Line", options=indata['Product line'].unique(), default=indata['Product line'].unique())
+    customer_types = st.multiselect("Select Customer Type", options=indata['Customer type'].unique(), default=indata['Customer type'].unique())
 
 # Filter data based on selections
-filtered_df = df[df['City'].isin(cities) & df['Product line'].isin(product_lines) & df['Customer type'].isin(customer_types)]
+filtered_indata = indata[indata['City'].isin(cities) & indata['Product line'].isin(product_lines) & indata['Customer type'].isin(customer_types)]
 
 with col2:
     # Display key metrics
     st.subheader("Key Metrics")
-    total_sales = filtered_df['Total'].sum()
-    avg_sales = filtered_df['Total'].mean()
+    total_sales = filtered_indata['Total'].sum()
+    avg_sales = filtered_indata['Total'].mean()
     st.metric("Total Sales", f"${total_sales:,.2f}")
     st.metric("Average Sale", f"${avg_sales:,.2f}")
 
 # Display filtered data table
 st.subheader("Filtered Sales Data")
-st.dataframe(filtered_df.head(10))
+st.dataframe(filtered_indata.head(10))
 
 # Download filtered data
 st.subheader("Download Filtered Data")
-csv = filtered_df.to_csv(index=False, encoding='utf-8-sig')
+csv = filtered_indata.to_csv(index=False, encoding='utf-8-sig')
 st.download_button(
     label="Download CSV",
     data=csv,
@@ -143,7 +147,7 @@ col3, col4 = st.columns(2)
 
 with col3:
     # Bar chart for sales by city
-    city_sales = filtered_df.groupby('City')['Total'].sum().reset_index()
+    city_sales = filtered_indata.groupby('City')['Total'].sum().reset_index()
     fig, ax = plt.subplots(figsize=(6, 4))
     sns.barplot(data=city_sales, x='Total', y='City', hue='City', palette='Blues', ax=ax)
     plt.title('Total Sales by City')
@@ -153,7 +157,7 @@ with col3:
 
 with col4:
     # Bar chart for sales by product line
-    product_sales = filtered_df.groupby('Product line')['Total'].sum().reset_index()
+    product_sales = filtered_indata.groupby('Product line')['Total'].sum().reset_index()
     fig, ax = plt.subplots(figsize=(6, 4))
     sns.barplot(data=product_sales, x='Total', y='Product line', hue='Product line', palette='Greens', ax=ax)
     plt.title('Total Sales by Product Line')
@@ -163,7 +167,7 @@ with col4:
 
 # Line chart for monthly sales trend
 st.subheader("Monthly Sales Trend")
-monthly_sales = filtered_df.groupby('Month')['Total'].sum().reset_index()
+monthly_sales = filtered_indata.groupby('Month')['Total'].sum().reset_index()
 fig, ax = plt.subplots(figsize=(8, 4))
 sns.lineplot(data=monthly_sales, x='Month', y='Total', marker='o', ax=ax)
 plt.title('Monthly Sales Trend')
@@ -172,4 +176,3 @@ plt.ylabel('Total Sales')
 plt.xticks(rotation=45)
 plt.grid(True)
 st.pyplot(fig)
-
